@@ -6,6 +6,7 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
+import { Link } from "@remix-run/react";
 
 import "./tailwind.css";
 
@@ -41,5 +42,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <div className="p-6 space-y-4">
+      <nav className="space-x-4">
+        <Link to="/" className="text-blue-600">Home</Link>
+        <Link to="/dashboard" className="text-blue-600">Dashboard</Link>
+      </nav>
+      <Outlet />
+    </div>
+  );
 }
