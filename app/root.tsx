@@ -47,6 +47,7 @@ export default function App() {
       <nav className="space-x-4">
         <Link to="/" className="text-blue-600">Home</Link>
         <Link to="/dashboard" className="text-blue-600">Dashboard</Link>
+        <Link to="/customers/1" className="text-blue-600">Customers</Link>
       </nav>
       <Outlet />
     </div>
