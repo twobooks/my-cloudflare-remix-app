@@ -1,6 +1,7 @@
 // app/routes/form-demo.jsx
 import { json } from "@remix-run/node";
 import { Form, useActionData } from "@remix-run/react";
+import * as XLSX from 'xlsx';
 
 export const action = async ({ request }) => {
     const formData = await request.formData();
@@ -9,14 +10,47 @@ export const action = async ({ request }) => {
     const inputText = formData.get("inputText") || "";
     const processedText = `${inputText} executed`;
 
-    // アップロードされたファイルの名前を取得
-    const uploadedFile = formData.get("textFile");
-    const fileName = uploadedFile ? uploadedFile.name : "ファイルがアップロードされていません";
+    // アップロードされたファイルを処理
+    const uploadedFile = formData.get("xlsxFile");
+    let fileName = "ファイルがアップロードされていません";
+    let firstRowData = [];
+
+    if (uploadedFile) {
+        fileName = uploadedFile.name;
+
+        try {
+            // ファイルの内容をバッファとして読み込む
+            const fileBuffer = await uploadedFile.arrayBuffer();
+
+            // XLSXとして解析
+            const workbook = XLSX.read(fileBuffer, { type: 'array' });
+
+            // 最初のシートを取得
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+
+            // シートからデータを取得
+            const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+            // 1行目のデータを取得（データがある場合）
+            if (data.length > 0) {
+                firstRowData = data[0];
+            }
+        } catch (error) {
+            console.error("XLSXファイルの処理中にエラーが発生しました:", error);
+            return json({
+                processedText,
+                fileName,
+                error: "XLSXファイルの処理中にエラーが発生しました",
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
 
     // JSON形式でデータを返す
     return json({
         processedText,
         fileName,
+        firstRowData,
         timestamp: new Date().toISOString()
     });
 };
@@ -44,16 +78,19 @@ export default function FormDemo() {
                 </div>
 
                 <div>
-                    <label htmlFor="textFile" className="block text-sm font-medium mb-1">
-                        テキストファイル:
+                    <label htmlFor="xlsxFile" className="block text-sm font-medium mb-1">
+                        Excelファイル:
                     </label>
                     <input
                         type="file"
-                        id="textFile"
-                        name="textFile"
+                        id="xlsxFile"
+                        name="xlsxFile"
                         className="w-full p-2 border rounded-md"
-                        accept=".txt"
+                        accept=".xlsx, .xls"
                     />
+                    <p className="text-sm text-gray-500 mt-1">
+                        .xlsx または .xls ファイルをアップロードしてください
+                    </p>
                 </div>
 
                 <button
@@ -70,6 +107,22 @@ export default function FormDemo() {
                     <div className="space-y-2">
                         <p><strong>処理後テキスト:</strong> {actionData.processedText}</p>
                         <p><strong>アップロードされたファイル:</strong> {actionData.fileName}</p>
+
+                        {actionData.error ? (
+                            <p className="text-red-600"><strong>エラー:</strong> {actionData.error}</p>
+                        ) : actionData.firstRowData && actionData.firstRowData.length > 0 ? (
+                            <div>
+                                <p><strong>1行目のデータ:</strong></p>
+                                <ul className="list-disc list-inside ml-4">
+                                    {actionData.firstRowData.map((cell, index) => (
+                                        <li key={index}>{cell}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : (
+                            <p>1行目のデータは見つかりませんでした</p>
+                        )}
+
                         <p><strong>処理時間:</strong> {actionData.timestamp}</p>
                     </div>
 
