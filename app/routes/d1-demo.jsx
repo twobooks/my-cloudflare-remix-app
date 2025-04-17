@@ -21,7 +21,8 @@ export const action = async ({ request, context }) => {
 
     try {
         // context.envからD1データベースを取得
-        const db = context.env.DB;
+        // const db = context.env.DB;
+        const db = context.DB;
 
         if (!db) {
             throw new Error("D1データベースの参照に失敗しました");
