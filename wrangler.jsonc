@@ -20,8 +20,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "bookmarks_db",
-      "database_id": "f12b2f01-e599-4e9e-a5d9-58a11e3f5c6a" // 実際のD1データベースIDに置き換えてください
+      "database_name": "customers_db",
+      "database_id": "06c0a0b4-86b9-4218-b2d0-456a7c9c09b7" // 実際のD1データベースIDに置き換えてください
     }
   ]
   /**

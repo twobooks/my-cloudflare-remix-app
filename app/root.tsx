@@ -48,7 +48,7 @@ export default function App() {
         <Link to="/" className="text-blue-600">Home</Link>
         <Link to="/dashboard" className="text-blue-600">Dashboard</Link>
         <Link to="/customers/1" className="text-blue-600">Customers</Link>
-        <Link to="/form-demo" className="text-blue-600">Upload</Link>
+        <Link to="/upload" className="text-blue-600">Upload</Link>
       </nav>
       <Outlet />
     </div>
