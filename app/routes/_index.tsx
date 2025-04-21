@@ -56,36 +56,42 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
             //     WHERE  name_kanji LIKE ? OR COALESCE(phone_home, phone_mobile) LIKE ?
             //     LIMIT  ${LIMIT};
             //   `;
+            //
+            // const searchParam = `%${q}%`;
+            // const { results } = await db
+            //     .prepare(sql)
+            //     .bind(searchParam, searchParam, searchParam, searchParam, searchParam)
+            //     .all();
+            // rows = results as typeof rows;
+
             const sql = `
                 SELECT 'company' AS src,
-                        c.client_code AS client_code,
-                        NULL          AS person_code,
-                        c.name_kanji  AS name,
-                        c.phone       AS phone,
-                        c.auditor_name AS auditor
+                    c.client_code AS client_code,
+                    NULL          AS person_code,
+                    c.name_kanji  AS name,
+                    c.phone       AS phone,
+                    c.auditor_name AS auditor
                 FROM   search_index
                 JOIN   companies AS c ON c.id = search_index.doc_id
                 WHERE  search_index.doc_type = 'company'
-                    AND  search_index MATCH ?
+                AND  search_index MATCH ?
                 UNION ALL
                 SELECT 'person'  AS src,
-                        p.client_code AS client_code,
-                        p.person_code AS person_code,
-                        p.name_kanji  AS name,
-                        COALESCE(p.phone_home, p.phone_mobile) AS phone,
-                        NULL AS auditor
+                    p.client_code AS client_code,
+                    p.person_code AS person_code,
+                    p.name_kanji  AS name,
+                    COALESCE(p.phone_home, p.phone_mobile) AS phone,
+                    NULL AS auditor
                 FROM   search_index
                 JOIN   people AS p ON p.id = search_index.doc_id
                 WHERE  search_index.doc_type = 'person'
-                    AND  search_index MATCH ?
+                AND  search_index MATCH ?
                 LIMIT  ${LIMIT};
-                `;
+            `;
 
-            const searchParam = `%${q}%`;
-            const { results } = await db
-                .prepare(sql)
-                .bind(searchParam, searchParam, searchParam, searchParam, searchParam)
-                .all();
+            // FTS5 用の検索語（前方一致させたい場合は `${q}*`）
+            const term = q;
+            const { results } = await db.prepare(sql).bind(term, term).all();
             rows = results as typeof rows;
         } else {
             // 検索クエリがない場合は全件表示
