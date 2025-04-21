@@ -36,26 +36,50 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     try {
         if (q) {
             // 検索クエリがある場合の処理
+            //         const sql = `
+            //     SELECT 'company' AS src,
+            //            client_code           AS client_code,
+            //            NULL                  AS person_code,
+            //            name_kanji            AS name,
+            //            phone                 AS phone,
+            //            auditor_name          AS auditor
+            //     FROM   companies
+            //     WHERE  name_kanji LIKE ? OR phone LIKE ? OR auditor_name LIKE ?
+            //     UNION ALL
+            //     SELECT 'person'  AS src,
+            //            client_code        AS client_code,
+            //            person_code        AS person_code,
+            //            name_kanji         AS name,
+            //            COALESCE(phone_home, phone_mobile) AS phone,
+            //            NULL                 AS auditor
+            //     FROM   people
+            //     WHERE  name_kanji LIKE ? OR COALESCE(phone_home, phone_mobile) LIKE ?
+            //     LIMIT  ${LIMIT};
+            //   `;
             const sql = `
-        SELECT 'company' AS src,
-               client_code           AS client_code,
-               NULL                  AS person_code,
-               name_kanji            AS name,
-               phone                 AS phone,
-               auditor_name          AS auditor
-        FROM   companies
-        WHERE  name_kanji LIKE ? OR phone LIKE ? OR auditor_name LIKE ?
-        UNION ALL
-        SELECT 'person'  AS src,
-               client_code        AS client_code,
-               person_code        AS person_code,
-               name_kanji         AS name,
-               COALESCE(phone_home, phone_mobile) AS phone,
-               NULL                 AS auditor
-        FROM   people
-        WHERE  name_kanji LIKE ? OR COALESCE(phone_home, phone_mobile) LIKE ?
-        LIMIT  ${LIMIT};
-      `;
+                SELECT 'company' AS src,
+                        c.client_code         AS client_code,
+                        NULL                  AS person_code,
+                        c.name_kanji          AS name,
+                        c.phone               AS phone,
+                        c.auditor_name        AS auditor
+                FROM   search_index AS s
+                JOIN   companies     AS c ON c.id = s.doc_id
+                WHERE  s.doc_type = 'company'
+                    AND  s MATCH ?
+                UNION ALL
+                SELECT 'person'  AS src,
+                        p.client_code        AS client_code,
+                        p.person_code        AS person_code,
+                        p.name_kanji         AS name,
+                        COALESCE(p.phone_home, p.phone_mobile) AS phone,
+                        NULL                 AS auditor
+                FROM   search_index AS s
+                JOIN   people        AS p ON p.id = s.doc_id
+                WHERE  s.doc_type = 'person'
+                    AND  s MATCH ?
+                LIMIT  ${LIMIT};
+                `;
 
             const searchParam = `%${q}%`;
             const { results } = await db
