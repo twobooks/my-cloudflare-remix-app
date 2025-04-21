@@ -90,7 +90,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
             `;
 
             // FTS5 用の検索語（前方一致させたい場合は `${q}*`）
-            const term = q;
+            const term = `${q}*`;
             const { results } = await db.prepare(sql).bind(term, term).all();
             rows = results as typeof rows;
         } else {
