@@ -2,22 +2,17 @@ import {
   json,
   type LoaderFunctionArgs,
   type MetaFunction,
-} from "@remix-run/cloudflare";   // ← ランタイム（loader 用）
-
+} from "@remix-run/cloudflare";
 import {
   Form,
   useLoaderData,
   useSubmit,
-} from "@remix-run/react";          // ← React フック & コンポーネント
-
+} from "@remix-run/react";
 import { useEffect, useState } from "react";
 import type { D1Database } from "@cloudflare/workers-types";
 
 export const meta: MetaFunction = () => [{ title: "顧客一覧" }];
 
-/* -------------------------------------------------
- * 1. loader：検索クエリ q を受け取り、D1 から結果を返す
- * ------------------------------------------------- */
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { env } = context.cloudflare;
   const db = env.DB as D1Database;
@@ -37,24 +32,22 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
   if (q) {
     const sql = `
-      /* -- company -- */
       SELECT 'company' AS src,
-             c.client_code,
-             NULL          AS person_code,
-             c.name_kanji  AS name,
-             c.phone       AS phone,
-             c.auditor_name AS auditor
+             c.client_code         AS client_code,
+             NULL                  AS person_code,
+             c.name_kanji          AS name,
+             c.phone               AS phone,
+             c.auditor_name        AS auditor
       FROM   search_index s
       JOIN   companies     c ON c.id = s.doc_id
       WHERE  s.doc_type = 'company' AND s MATCH ?
       UNION ALL
-      /* -- person -- */
-      SELECT 'person',
-             p.client_code,
-             p.person_code,
-             p.name_kanji,
-             COALESCE(p.phone_home, p.phone_mobile),
-             NULL AS auditor
+      SELECT 'person'  AS src,
+             p.client_code        AS client_code,
+             p.person_code        AS person_code,
+             p.name_kanji         AS name,
+             COALESCE(p.phone_home, p.phone_mobile) AS phone,
+             NULL                 AS auditor
       FROM   search_index s
       JOIN   people        p ON p.id = s.doc_id
       WHERE  s.doc_type = 'person' AND s MATCH ?
@@ -63,31 +56,29 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     const { results } = await db.prepare(sql).bind(q, q).all();
     rows = results as typeof rows;
   } else {
-    // 初期表示：先頭 LIMIT 件
-    const { results } = await db
-      .prepare(
-        `SELECT 'company', client_code, NULL, name_kanji,
-                phone, auditor_name
-         FROM   companies
-         ORDER BY client_code
-         LIMIT   ${LIMIT}`
-      )
-      .all();
+    const sql = `
+      SELECT 'company' AS src,
+             client_code           AS client_code,
+             NULL                  AS person_code,
+             name_kanji            AS name,
+             phone                 AS phone,
+             auditor_name          AS auditor
+      FROM   companies
+      ORDER  BY client_code
+      LIMIT  ${LIMIT};
+    `;
+    const { results } = await db.prepare(sql).all();
     rows = results as typeof rows;
   }
 
   return json({ q, rows });
 };
 
-/* -------------------------------------------------
- * 2. React コンポーネント
- * ------------------------------------------------- */
 export default function IndexPage() {
   const { q, rows } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const [query, setQuery] = useState(q ?? "");
 
-  // 入力が変わるたびに 300ms デバウンスして GET /?q=...
   useEffect(() => {
     const delay = setTimeout(() => {
       const form = document.getElementById("search-form") as HTMLFormElement;
@@ -98,7 +89,6 @@ export default function IndexPage() {
 
   return (
     <main className="mx-auto max-w-4xl p-6">
-      {/* -------- 検索ボックス -------- */}
       <Form id="search-form" method="get">
         <input
           type="text"
@@ -110,7 +100,6 @@ export default function IndexPage() {
         />
       </Form>
 
-      {/* -------- 検索結果テーブル -------- */}
       <table className="mt-6 w-full border-collapse">
         <thead>
           <tr className="border-b text-left">
