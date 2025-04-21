@@ -58,26 +58,26 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
             //   `;
             const sql = `
                 SELECT 'company' AS src,
-                        c.client_code         AS client_code,
-                        NULL                  AS person_code,
-                        c.name_kanji          AS name,
-                        c.phone               AS phone,
-                        c.auditor_name        AS auditor
-                FROM   search_index AS s
-                JOIN   companies     AS c ON c.id = s.doc_id
-                WHERE  s.doc_type = 'company'
-                    AND  s MATCH ?
+                        c.client_code AS client_code,
+                        NULL          AS person_code,
+                        c.name_kanji  AS name,
+                        c.phone       AS phone,
+                        c.auditor_name AS auditor
+                FROM   search_index
+                JOIN   companies AS c ON c.id = search_index.doc_id
+                WHERE  search_index.doc_type = 'company'
+                    AND  search_index MATCH ?
                 UNION ALL
                 SELECT 'person'  AS src,
-                        p.client_code        AS client_code,
-                        p.person_code        AS person_code,
-                        p.name_kanji         AS name,
+                        p.client_code AS client_code,
+                        p.person_code AS person_code,
+                        p.name_kanji  AS name,
                         COALESCE(p.phone_home, p.phone_mobile) AS phone,
-                        NULL                 AS auditor
-                FROM   search_index AS s
-                JOIN   people        AS p ON p.id = s.doc_id
-                WHERE  s.doc_type = 'person'
-                    AND  s MATCH ?
+                        NULL AS auditor
+                FROM   search_index
+                JOIN   people AS p ON p.id = search_index.doc_id
+                WHERE  search_index.doc_type = 'person'
+                    AND  search_index MATCH ?
                 LIMIT  ${LIMIT};
                 `;
 
