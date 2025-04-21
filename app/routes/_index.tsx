@@ -2,10 +2,14 @@ import {
   json,
   type LoaderFunctionArgs,
   type MetaFunction,
+} from "@remix-run/cloudflare";   // ← ランタイム（loader 用）
+
+import {
+  Form,
   useLoaderData,
   useSubmit,
-} from "@remix-run/cloudflare";
-import { Form } from "@remix-run/react";
+} from "@remix-run/react";          // ← React フック & コンポーネント
+
 import { useEffect, useState } from "react";
 import type { D1Database } from "@cloudflare/workers-types";
 
@@ -22,7 +26,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const q = url.searchParams.get("q")?.trim() ?? "";
   const LIMIT = 100;
 
-  // — 検索 SQL —
   let rows: {
     src: "company" | "person";
     client_code: number;
@@ -34,18 +37,18 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
   if (q) {
     const sql = `
-      /* 法人 */
+      /* -- company -- */
       SELECT 'company' AS src,
-             c.client_code          AS client_code,
-             NULL                   AS person_code,
-             c.name_kanji           AS name,
-             c.phone                AS phone,
-             c.auditor_name         AS auditor
+             c.client_code,
+             NULL          AS person_code,
+             c.name_kanji  AS name,
+             c.phone       AS phone,
+             c.auditor_name AS auditor
       FROM   search_index s
       JOIN   companies     c ON c.id = s.doc_id
       WHERE  s.doc_type = 'company' AND s MATCH ?
       UNION ALL
-      /* 個人 */
+      /* -- person -- */
       SELECT 'person',
              p.client_code,
              p.person_code,
@@ -57,17 +60,16 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       WHERE  s.doc_type = 'person' AND s MATCH ?
       LIMIT  ${LIMIT};
     `;
-    // パラメータは 2 回同じ語を渡す
     const { results } = await db.prepare(sql).bind(q, q).all();
     rows = results as typeof rows;
   } else {
-    // 初期表示：先頭 LIMIT 件（会社優先で例示）
+    // 初期表示：先頭 LIMIT 件
     const { results } = await db
       .prepare(
-        `SELECT 'company' AS src, c.client_code, NULL AS person_code,
-                c.name_kanji AS name, c.phone, c.auditor_name AS auditor
-         FROM   companies c
-         ORDER BY c.client_code
+        `SELECT 'company', client_code, NULL, name_kanji,
+                phone, auditor_name
+         FROM   companies
+         ORDER BY client_code
          LIMIT   ${LIMIT}`
       )
       .all();
@@ -85,18 +87,18 @@ export default function IndexPage() {
   const submit = useSubmit();
   const [query, setQuery] = useState(q ?? "");
 
-  // 入力が変わったら「GET /?q=…」を自動送信
+  // 入力が変わるたびに 300ms デバウンスして GET /?q=...
   useEffect(() => {
     const delay = setTimeout(() => {
       const form = document.getElementById("search-form") as HTMLFormElement;
       submit(form, { replace: true });
-    }, 300); // 300ms デバウンス
+    }, 300);
     return () => clearTimeout(delay);
   }, [query, submit]);
 
   return (
     <main className="mx-auto max-w-4xl p-6">
-      {/* --- 検索テキストボックス --- */}
+      {/* -------- 検索ボックス -------- */}
       <Form id="search-form" method="get">
         <input
           type="text"
@@ -108,7 +110,7 @@ export default function IndexPage() {
         />
       </Form>
 
-      {/* --- 検索結果一覧 --- */}
+      {/* -------- 検索結果テーブル -------- */}
       <table className="mt-6 w-full border-collapse">
         <thead>
           <tr className="border-b text-left">
