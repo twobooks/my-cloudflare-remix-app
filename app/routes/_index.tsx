@@ -104,7 +104,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
                NULL                  AS person_code,
                name_kanji            AS name,
                phone                 AS phone,
-               auditor_name          AS auditor
+               auditor_name          AS auditor,
+                id                    AS doc_id
         FROM   companies
         ORDER  BY client_code
         LIMIT  ${LIMIT};
