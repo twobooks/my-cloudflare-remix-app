@@ -11,6 +11,7 @@ import {
 } from "@remix-run/react";
 import { useEffect, useState, useRef } from "react";
 import type { D1Database } from "@cloudflare/workers-types";
+import { Link } from "@remix-run/react";
 
 export const meta: MetaFunction = () => [{ title: "顧客一覧" }];
 
@@ -190,7 +191,14 @@ export default function IndexPage() {
                             <td className="py-1 pr-4">
                                 {r.person_code !== null ? r.person_code : "-"}
                             </td>
-                            <td className="py-1 pr-4">{r.name}</td>
+                            <td className="py-1 pr-4">
+                                <Link
+                                    to={`/customer/${r.src}/${r.doc_id ?? r.id ?? ""}`}  /* ← id を渡す */
+                                    className="text-blue-700 underline hover:text-blue-900"
+                                >
+                                    {r.name}
+                                </Link>
+                            </td>
                             <td className="py-1 pr-4">{r.phone ?? "-"}</td>
                             <td className="py-1">{r.auditor ?? "-"}</td>
                         </tr>
