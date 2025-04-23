@@ -71,7 +71,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
                     NULL          AS person_code,
                     c.name_kanji  AS name,
                     c.phone       AS phone,
-                    c.auditor_name AS auditor
+                    c.auditor_name AS auditor,
+                    search_index.doc_id AS doc_id
                 FROM   search_index
                 JOIN   companies AS c ON c.id = search_index.doc_id
                 WHERE  search_index.doc_type = 'company'
@@ -82,7 +83,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
                     p.person_code AS person_code,
                     p.name_kanji  AS name,
                     COALESCE(p.phone_home, p.phone_mobile) AS phone,
-                    NULL AS auditor
+                    NULL AS auditor,
+                    search_index.doc_id AS doc_id
                 FROM   search_index
                 JOIN   people AS p ON p.id = search_index.doc_id
                 WHERE  search_index.doc_type = 'person'
