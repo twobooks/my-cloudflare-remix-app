@@ -16,7 +16,7 @@ export function telHref(num: string): string {
  * - num が falsy のときは "-" を表示
  * - className 指定がなければ青のアンダーライン
  */
-export default function PhoneLink({
+export function PhoneLink({
     num,
     className,
 }: PhoneLinkProps) {
