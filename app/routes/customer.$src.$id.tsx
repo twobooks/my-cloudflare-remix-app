@@ -11,6 +11,8 @@ import {
 import type { D1Database } from "@cloudflare/workers-types";
 import { useEffect, useRef } from "react";
 
+import { PhoneLink } from "@/components/ui/PhoneLink";
+
 /* ------------------  Loader ------------------ */
 export const loader = async ({ params, context }: LoaderFunctionArgs) => {
     const { src, id } = params as { src: "company" | "person"; id: string };
@@ -161,7 +163,8 @@ function CompanyTable({ row }: { row: any }) {
                 <TableRow label="郵便番号" value={row.postal_code} />
                 <TableRow label="住所1" value={row.address1} />
                 <TableRow label="住所2" value={row.address2} />
-                <TableRow label="電話番号" value={row.phone} />
+                {/* <TableRow label="電話番号" value={row.phone} /> */}
+                <TableRow label="電話番号" value={<PhoneLink num={row.phone} />} />
                 <TableRow label="監査担当者" value={row.auditor_name} />
             </tbody>
         </table>
@@ -178,8 +181,10 @@ function PersonTable({ row }: { row: any }) {
                 <TableRow label="氏名フリガナ" value={row.name_furigana} />
                 <TableRow label="性別" value={row.gender} />
                 <TableRow label="生年月日" value={row.birth_date} />
-                <TableRow label="電話(自宅)" value={row.phone_home} />
-                <TableRow label="電話(携帯)" value={row.phone_mobile} />
+                {/* <TableRow label="電話(自宅)" value={row.phone_home} />
+                <TableRow label="電話(携帯)" value={row.phone_mobile} /> */}
+                <TableRow label="電話(自宅)" value={<PhoneLink num={row.phone_home} />} />
+                <TableRow label="電話(携帯)" value={<PhoneLink num={row.phone_mobile} />} />
                 <TableRow label="E‑mail" value={row.email} />
                 <TableRow label="郵便番号" value={row.postal_code} />
                 <TableRow label="住所1" value={row.address1} />

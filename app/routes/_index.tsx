@@ -13,6 +13,8 @@ import { useEffect, useState, useRef } from "react";
 import type { D1Database } from "@cloudflare/workers-types";
 import { Link } from "@remix-run/react";
 
+import { PhoneLink } from "@/components/ui/PhoneLink";
+
 export const meta: MetaFunction = () => [{ title: "顧客一覧" }];
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -202,7 +204,10 @@ export default function IndexPage() {
                                     {r.name}
                                 </Link>
                             </td>
-                            <td className="py-1 pr-4">{r.phone ?? "-"}</td>
+                            {/* <td className="py-1 pr-4">{r.phone ?? "-"}</td> */}
+                            <td className="py-1 pr-4">
+                                <PhoneLink num={r.phone} />
+                            </td>
                             <td className="py-1">{r.auditor ?? "-"}</td>
                         </tr>
                     ))}
