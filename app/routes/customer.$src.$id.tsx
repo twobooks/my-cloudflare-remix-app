@@ -12,31 +12,32 @@ import {
 } from "@remix-run/react";
 import type { D1Database } from "@cloudflare/workers-types";
 import { useEffect, useRef } from "react";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+
 import { PhoneLink } from "@/components/ui/PhoneLink";
 
 // ------------------  Loader ------------------
 export const loader = async ({ params, context }: LoaderFunctionArgs) => {
     const { src, id } = params as { src: "company" | "person"; id: string };
-    const db = context.cloudflare.env.DB as D1Database;
+    const db = (context.cloudflare.env.DB as unknown) as D1Database;
 
-    const row =
-        src === "company"
-            ? await db
-                .prepare(
-                    `SELECT id, client_code, name_kanji, name_furigana, name_alias,
+    let row: any = null;
+    if (src === "company") {
+        row = await db
+            .prepare(
+                `SELECT id, client_code, name_kanji, name_furigana, name_alias,
                     representative, industry_code,
                     postal_code, address1, address2,
                     phone, fax, email, auditor_name,
                     raw_json,
                     json_extract(raw_json,'$.custom_note') AS custom_note
              FROM   companies WHERE id = ? LIMIT 1;`
-                )
-                .bind(id)
-                .first()
-            : await db
-                .prepare(
-                    `SELECT id, client_code, person_code, company_id,
+            )
+            .bind(id)
+            .first()
+    } else {
+        row = await db
+            .prepare(
+                `SELECT id, client_code, person_code, company_id,
                     name_kanji, name_furigana, gender, birth_date,
                     phone_home, phone_mobile, fax, email,
                     postal_code, address1, address2,
@@ -44,10 +45,10 @@ export const loader = async ({ params, context }: LoaderFunctionArgs) => {
                     json_extract(raw_json,'$.personal_auditor') AS personal_auditor,
                     json_extract(raw_json,'$.custom_note')      AS custom_note
              FROM   people WHERE id = ? LIMIT 1;`
-                )
-                .bind(id)
-                .first();
-
+            )
+            .bind(id)
+            .first();
+    }
     if (!row) throw new Response("Not found", { status: 404 });
     return json({ src, row });
 };
@@ -55,7 +56,8 @@ export const loader = async ({ params, context }: LoaderFunctionArgs) => {
 // ------------------  Action ------------------
 export const action = async ({ request, params, context }: ActionFunctionArgs) => {
     const { src, id } = params as { src: "company" | "person"; id: string };
-    const db = context.cloudflare.env.DB as D1Database;
+    const db = (context.cloudflare.env.DB as unknown) as D1Database;
+
     const fd = await request.formData();
     const _action = fd.get("_action");
 
@@ -66,7 +68,7 @@ export const action = async ({ request, params, context }: ActionFunctionArgs) =
         } else {
             await db.prepare(`DELETE FROM people WHERE id = ?`).bind(id).run();
         }
-        return redirect("/deleted" as string);
+        return redirect("/" as string);
     }
 
     // ---- 更新 ----

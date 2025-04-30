@@ -102,8 +102,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
                             r["住所１"] ?? "",
                             r["住所２"] ?? "",
                             r["本店電話番号"] ?? r["電話番号"] ?? "",
-                            r["FAX番号"] ?? r["FAX"] ?? "",
-                            r["E-Mail"] ?? r["Eメール"] ?? "",
+                            r["本店FAX番号"] ?? r["FAX番号＿巡回監査先"] ?? r["FAX番号＿郵送先"] ?? "",
+                            r["Ｅメール"] ?? r["E-Mail"] ?? r["Eメール"] ?? "",
                             r["監査担当者名"] ?? "",
                             now()
                         )
