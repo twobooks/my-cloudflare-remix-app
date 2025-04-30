@@ -12,7 +12,7 @@ import {
 } from "@remix-run/react";
 import type { D1Database } from "@cloudflare/workers-types";
 import { useEffect, useRef } from "react";
-import { PhoneLink } from "@/components/PhoneLink";
+import { PhoneLink } from "@/components/ui/PhoneLink";
 
 // ------------------  Loader ------------------
 export const loader = async ({ params, context }: LoaderFunctionArgs) => {

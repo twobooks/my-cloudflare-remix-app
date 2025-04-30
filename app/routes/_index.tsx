@@ -12,7 +12,7 @@ import {
 } from "@remix-run/react";
 import { useEffect, useState, useRef } from "react";
 import type { D1Database } from "@cloudflare/workers-types";
-import { PhoneLink } from "@/components/PhoneLink";
+import { PhoneLink } from "@/components/ui/PhoneLink";
 
 export const meta: MetaFunction = () => [{ title: "顧客一覧" }];
 
