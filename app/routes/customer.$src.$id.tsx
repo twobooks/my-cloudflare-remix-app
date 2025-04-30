@@ -1,5 +1,7 @@
-import type { LoaderFunctionArgs } from '@remix-run/cloudflare-pages';
-import { json } from '@remix-run/cloudflare-pages';
+import {
+    json,
+    type LoaderFunctionArgs,
+} from "@remix-run/cloudflare";
 import { useLoaderData, Link } from '@remix-run/react';
 import type { D1Database } from "@cloudflare/workers-types";
 
