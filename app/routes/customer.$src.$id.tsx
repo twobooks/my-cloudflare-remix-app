@@ -18,20 +18,7 @@ import { useEffect, useRef } from "react";
 // D1データベース型のインポート方法を修正
 import type { D1Database } from "@cloudflare/workers-types";
 
-// インポートパスの問題対応
-// 複数のパターンを試してみる
-try {
-    // オリジナルのパス
-    // import { PhoneLink } from "@/components/ui/PhoneLink";
-    // または相対パス
-    import { PhoneLink } from "../components/ui/PhoneLink";
-} catch (e) {
-    // PhoneLinkコンポーネントの代替実装
-    const PhoneLink = ({ num }: { num: string | null }) => {
-        if (!num) return null;
-        return <a href={`tel:${num}`}>{num}</a>;
-    };
-}
+import { PhoneLink } from "@/components/ui/PhoneLink";
 
 // ------------------  Loader ------------------
 export const loader = async ({ params, context }: LoaderFunctionArgs) => {
