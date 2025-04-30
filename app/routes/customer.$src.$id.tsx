@@ -1,48 +1,57 @@
 import {
     json,
+    redirect,
     type LoaderFunctionArgs,
     type ActionFunctionArgs,
 } from "@remix-run/cloudflare";
 import {
     Form,
     useLoaderData,
-    useNavigation,           // ← ここ
+    useNavigation,
+    Link,
 } from "@remix-run/react";
-import type { D1Database } from "@cloudflare/workers-types";
 import { useEffect, useRef } from "react";
 
-import { PhoneLink } from "@/components/ui/PhoneLink";
+// D1データベース型のインポート方法を修正
+import type { D1Database } from "@cloudflare/workers-types";
 
-/* ------------------  Loader ------------------ */
+// 相対パスでコンポーネントをインポート (絶対パスの@が問題になっている可能性あり)
+import { PhoneLink } from "../components/ui/PhoneLink";
+// または
+// import { PhoneLink } from "~/components/ui/PhoneLink";
+
+// ------------------  Loader ------------------
 export const loader = async ({ params, context }: LoaderFunctionArgs) => {
     const { src, id } = params as { src: "company" | "person"; id: string };
-    const db = (context.cloudflare.env.DB as unknown) as D1Database;
+
+    // D1データベースの取得方法を修正
+    const db = context.cloudflare.env.DB as D1Database;
 
     let row: any = null;
     if (src === "company") {
         row = await db
             .prepare(
                 `SELECT id, client_code, name_kanji, name_furigana, name_alias,
-                representative, industry_code,
-                postal_code, address1, address2,
-                phone, auditor_name,
-                raw_json,
-                json_extract(raw_json,'$.custom_note') AS custom_note
-         FROM   companies WHERE id = ? LIMIT 1;`
+                    representative, industry_code,
+                    postal_code, address1, address2,
+                    phone, fax, email, auditor_name,
+                    raw_json,
+                    json_extract(raw_json,'$.custom_note') AS custom_note
+             FROM   companies WHERE id = ? LIMIT 1;`
             )
             .bind(id)
-            .first();
+            .first()
     } else {
         row = await db
             .prepare(
                 `SELECT id, client_code, person_code, company_id,
-                name_kanji, name_furigana, gender, birth_date,
-                phone_home, phone_mobile, email,
-                postal_code, address1, address2,
-                raw_json,
-                json_extract(raw_json,'$.personal_auditor') AS personal_auditor,
-                json_extract(raw_json,'$.custom_note')      AS custom_note
-         FROM   people WHERE id = ? LIMIT 1;`
+                    name_kanji, name_furigana, gender, birth_date,
+                    phone_home, phone_mobile, fax, email,
+                    postal_code, address1, address2,
+                    raw_json,
+                    json_extract(raw_json,'$.personal_auditor') AS personal_auditor,
+                    json_extract(raw_json,'$.custom_note')      AS custom_note
+             FROM   people WHERE id = ? LIMIT 1;`
             )
             .bind(id)
             .first();
@@ -51,12 +60,28 @@ export const loader = async ({ params, context }: LoaderFunctionArgs) => {
     return json({ src, row });
 };
 
-/* ------------------  Action (custom fields) ------------------ */
+// ------------------  Action ------------------
 export const action = async ({ request, params, context }: ActionFunctionArgs) => {
     const { src, id } = params as { src: "company" | "person"; id: string };
-    const db = (context.cloudflare.env.DB as unknown) as D1Database;
+
+    // D1データベースの取得方法を修正
+    const db = context.cloudflare.env.DB as D1Database;
 
     const fd = await request.formData();
+    const _action = fd.get("_action");
+
+    if (_action === "delete") {
+        // ---- 削除 ----
+        if (src === "company") {
+            await db.prepare(`DELETE FROM companies WHERE id = ?`).bind(id).run();
+        } else {
+            await db.prepare(`DELETE FROM people WHERE id = ?`).bind(id).run();
+        }
+        // リダイレクト URL の形式を修正
+        return redirect("/");
+    }
+
+    // ---- 更新 ----
     const customNote = fd.get("custom_note") as string;
     const personalAuditor = fd.get("personal_auditor") as string | null;
 
@@ -86,33 +111,43 @@ export const action = async ({ request, params, context }: ActionFunctionArgs) =
     return json({ ok: true });
 };
 
-/* ------------------  React ------------------ */
+// ------------------  React ------------------
 export default function CustomerDetail() {
     const { src, row } = useLoaderData<typeof loader>();
-    const navigation = useNavigation();              // ← ここ
-    const isUpdating = navigation.state === "submitting";
+    const navigation = useNavigation();
+    const isSubmitting = navigation.state === "submitting";
     const formRef = useRef<HTMLFormElement>(null);
 
     useEffect(() => {
-        if (!isUpdating) formRef.current?.reset();
-    }, [isUpdating]);
+        if (!isSubmitting) formRef.current?.reset();
+    }, [isSubmitting]);
 
     return (
-        <main className="mx-auto max-w-3xl p-6">
-            <h1 className="mb-6 text-2xl font-bold">
-                {src === "company" ? "会社：" : "個人："}
-                {row.name_kanji}
-            </h1>
+        <main className="mx-auto max-w-3xl p-6 space-y-8">
+            <header className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold">
+                    {src === "company" ? "会社：" : "個人："}
+                    {row.name_kanji}
+                </h1>
+                {/* 削除ボタン */}
+                <Form method="post">
+                    <input type="hidden" name="_action" value="delete" />
+                    <button
+                        type="submit"
+                        className="rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700"
+                        onClick={(e) => {
+                            if (!confirm("本当に削除しますか？")) e.preventDefault();
+                        }}
+                    >
+                        削除
+                    </button>
+                </Form>
+            </header>
 
-            {/* ==== 詳細情報 ==== */}
-            {src === "company" ? (
-                <CompanyTable row={row} />
-            ) : (
-                <PersonTable row={row} />
-            )}
+            {src === "company" ? <CompanyTable row={row} /> : <PersonTable row={row} />}
 
-            {/* ==== 任意メモ / 個人担当者 ==== */}
-            <Form method="post" ref={formRef} className="mt-8 space-y-4">
+            {/* 任意メモ・個人担当者 */}
+            <Form method="post" ref={formRef} className="space-y-4">
                 {src === "person" && (
                     <div>
                         <label className="block font-medium" htmlFor="personal_auditor">
@@ -141,19 +176,19 @@ export default function CustomerDetail() {
                 <button
                     type="submit"
                     className="rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                    disabled={isUpdating}
+                    disabled={isSubmitting}
                 >
-                    {isUpdating ? "保存中…" : "保存"}
+                    {isSubmitting ? "保存中…" : "保存"}
                 </button>
             </Form>
         </main>
     );
 }
 
-/* ---------- 表示部品 ---------- */
+// ---------- 表示部品 ----------
 function CompanyTable({ row }: { row: any }) {
     return (
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse text-sm">
             <tbody>
                 <TableRow label="関与先コード" value={row.client_code} />
                 <TableRow label="商号フリガナ" value={row.name_furigana} />
@@ -163,8 +198,9 @@ function CompanyTable({ row }: { row: any }) {
                 <TableRow label="郵便番号" value={row.postal_code} />
                 <TableRow label="住所1" value={row.address1} />
                 <TableRow label="住所2" value={row.address2} />
-                {/* <TableRow label="電話番号" value={row.phone} /> */}
                 <TableRow label="電話番号" value={<PhoneLink num={row.phone} />} />
+                <TableRow label="FAX番号" value={<PhoneLink num={row.fax} />} />
+                <TableRow label="E‑mail" value={row.email} />
                 <TableRow label="監査担当者" value={row.auditor_name} />
             </tbody>
         </table>
@@ -173,7 +209,7 @@ function CompanyTable({ row }: { row: any }) {
 
 function PersonTable({ row }: { row: any }) {
     return (
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse text-sm">
             <tbody>
                 <TableRow label="関与先コード" value={row.client_code} />
                 <TableRow label="個人コード" value={row.person_code} />
@@ -181,10 +217,9 @@ function PersonTable({ row }: { row: any }) {
                 <TableRow label="氏名フリガナ" value={row.name_furigana} />
                 <TableRow label="性別" value={row.gender} />
                 <TableRow label="生年月日" value={row.birth_date} />
-                {/* <TableRow label="電話(自宅)" value={row.phone_home} />
-                <TableRow label="電話(携帯)" value={row.phone_mobile} /> */}
                 <TableRow label="電話(自宅)" value={<PhoneLink num={row.phone_home} />} />
                 <TableRow label="電話(携帯)" value={<PhoneLink num={row.phone_mobile} />} />
+                <TableRow label="FAX番号" value={<PhoneLink num={row.fax} />} />
                 <TableRow label="E‑mail" value={row.email} />
                 <TableRow label="郵便番号" value={row.postal_code} />
                 <TableRow label="住所1" value={row.address1} />
@@ -197,8 +232,8 @@ function PersonTable({ row }: { row: any }) {
 function TableRow({ label, value }: { label: string; value: any }) {
     return (
         <tr>
-            <th className="w-40 border-b py-1 text-left font-medium">{label}</th>
-            <td className="border-b py-1">{value ?? "-"}</td>
+            <th className="w-40 border-b py-2 text-left font-medium whitespace-nowrap">{label}</th>
+            <td className="border-b py-2">{value ?? "-"}</td>
         </tr>
     );
 }
