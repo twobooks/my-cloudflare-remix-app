@@ -9,10 +9,7 @@ import type { D1Database } from "@cloudflare/workers-types";
 export const loader = async ({ context, params }: LoaderFunctionArgs) => {
     const { src, doc_id } = params;
 
-    // srcは 'companies' または 'people' のみ許可
-    if (!src || !['companies', 'people'].includes(src)) {
-        throw new Response('Not Found', { status: 404 });
-    }
+    const table_name = (src === 'company') ? 'companies' : 'people';
     // doc_id を数値に変換
     const id = Number(doc_id);
     if (isNaN(id)) {
@@ -24,7 +21,7 @@ export const loader = async ({ context, params }: LoaderFunctionArgs) => {
     const db = env.DB as D1Database;
 
     // SQL クエリを実行
-    const query = `SELECT * FROM ${src} WHERE id = ?`;
+    const query = `SELECT * FROM ${table_name} WHERE id = ?`;
     const { results } = await db.prepare(query).bind(id).all();
 
     if (!results || results.length === 0) {
