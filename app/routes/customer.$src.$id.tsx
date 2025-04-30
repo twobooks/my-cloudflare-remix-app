@@ -15,7 +15,8 @@ import { PhoneLink } from "@/components/ui/PhoneLink";
 
 /* ------------------  Loader ------------------ */
 export const loader = async ({ params, context }: LoaderFunctionArgs) => {
-    const { src, id } = params as { src: "company" | "person"; id: string };
+    console.log("Params:", params); // URL パラメータをログに出力
+    const { src, doc_id } = params as { src: "company" | "person"; doc_id: string };
     const db = context.cloudflare.env.DB as unknown as D1Database;
 
     let row: any;
@@ -30,7 +31,7 @@ export const loader = async ({ params, context }: LoaderFunctionArgs) => {
                 json_extract(raw_json,'$.custom_note') AS custom_note
          FROM   companies WHERE id = ? LIMIT 1;`
             )
-            .bind(id)
+            .bind(doc_id)
             .first();
     } else {
         row = await db
@@ -44,7 +45,7 @@ export const loader = async ({ params, context }: LoaderFunctionArgs) => {
                 json_extract(raw_json,'$.custom_note')      AS custom_note
          FROM   people WHERE id = ? LIMIT 1;`
             )
-            .bind(id)
+            .bind(doc_id)
             .first();
     }
     if (!row) throw new Response("Not found", { status: 404 });
